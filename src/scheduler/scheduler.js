@@ -5,7 +5,7 @@ const bot = require('../whatsapp/bot');
 const logger = require('../utils/logger');
 
 let activeTimeouts = [];
-let todaysPlan = []; // for status/inspection via API
+let todaysPlan = [];
 
 function getSettings() {
   const rows = db.prepare('SELECT key, value FROM settings').all();
@@ -15,7 +15,7 @@ function getSettings() {
 }
 
 function todayDateString(d = new Date()) {
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  return d.toISOString().slice(0, 10);
 }
 
 function shuffle(arr) {
@@ -80,7 +80,6 @@ function buildTodaysQueue() {
     );
   }
 
-  // --- Timing ---
   const now = new Date();
   const [startH, startM] = (settings.opener_window_start || '07:00').split(':').map(Number);
   const [endH, endM] = (settings.opener_window_end || '08:00').split(':').map(Number);
@@ -96,14 +95,11 @@ function buildTodaysQueue() {
   if (opener) {
     let openerTime;
     if (now < windowStart) {
-      // window hasn't started yet today — pick random time inside it
       const spanMs = windowEnd.getTime() - windowStart.getTime();
       openerTime = new Date(windowStart.getTime() + randomInt(0, Math.max(spanMs, 0)));
     } else if (now <= windowEnd) {
-      // we're inside the window right now — post shortly
       openerTime = new Date(now.getTime() + randomInt(1, 5) * 60 * 1000);
     } else {
-      // window already passed today (e.g. server restarted late) — post now
       openerTime = new Date(now.getTime() + 60 * 1000);
     }
     plan.push({
@@ -132,7 +128,9 @@ function buildTodaysQueue() {
   return plan;
 }
 
-async function executePlanItem(item) {
+async function executePlanItem(item, attempt = 1) {
+  const MAX_ATTEMPTS = 3;
+  const RETRY_DELAY_MS = 3 * 60 * 1000;
   try {
     const fullPath = path.join(__dirname, '..', '..', item.product.image_path.replace(/^\//, ''));
     await bot.postToStatus(fullPath, item.caption);
@@ -145,7 +143,17 @@ async function executePlanItem(item) {
     ).run(item.product.id, item.caption, item.type === 'opener' ? 1 : 0, new Date().toISOString());
     logger.info(`Posted ${item.type} product #${item.product.id} to Status.`);
   } catch (err) {
-    logger.error(`Failed to post product #${item.product.id}:`, err.message);
+    const isNotReadyError = err.message && err.message.includes('not ready');
+    if (isNotReadyError && attempt < MAX_ATTEMPTS) {
+      logger.warn(
+        `WhatsApp not ready for product #${item.product.id} (attempt ${attempt}/${MAX_ATTEMPTS}). ` +
+        `Retrying in ${RETRY_DELAY_MS / 60000} minutes.`
+      );
+      const t = setTimeout(() => executePlanItem(item, attempt + 1), RETRY_DELAY_MS);
+      activeTimeouts.push(t);
+    } else {
+      logger.error(`Failed to post product #${item.product.id}:`, err.message);
+    }
   }
 }
 
@@ -156,7 +164,7 @@ function scheduleToday() {
   const now = Date.now();
   for (const item of todaysPlan) {
     const delay = item.time.getTime() - now;
-    if (delay <= 0) continue; // skip anything already in the past
+    if (delay <= 0) continue;
     const t = setTimeout(() => executePlanItem(item), delay);
     activeTimeouts.push(t);
   }
@@ -178,14 +186,10 @@ function getTodaysPlan() {
 }
 
 function init() {
-  // Rebuild the plan shortly after midnight every day
   cron.schedule('5 0 * * *', () => {
     logger.info('Midnight tick — rebuilding today\'s posting plan.');
     scheduleToday();
   });
-
-  // Also build immediately on startup so a mid-day restart still catches
-  // the rest of today's window.
   scheduleToday();
 }
 

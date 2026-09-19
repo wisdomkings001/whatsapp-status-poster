@@ -10,6 +10,15 @@ let client = null;
 let isReady = false;
 let lastQr = null;
 let lastQrDataUrl = null;
+let readyCallbacks = [];
+
+function onReady(callback) {
+  if (isReady) {
+    callback();
+  } else {
+    readyCallbacks.push(callback);
+  }
+}
 
 function init() {
   const puppeteerConfig = {
@@ -23,8 +32,6 @@ function init() {
     ]
   };
 
-  // Only needed on environments where Puppeteer's own Chromium download won't run
-  // (e.g. Termux/Android). On a normal Linux container this is usually unset.
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     logger.info(`Using system Chromium at: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
@@ -33,8 +40,6 @@ function init() {
   client = new Client({
     authStrategy: new LocalAuth({ dataPath: path.join(__dirname, '..', '..', '.wwebjs_auth') }),
     puppeteer: puppeteerConfig,
-    // Keeps the WhatsApp Web version cache current automatically instead of
-    // relying on whatever version shipped with the library at install time.
     webVersionCache: {
       type: 'remote',
       remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html'
@@ -63,6 +68,9 @@ function init() {
     lastQr = null;
     lastQrDataUrl = null;
     logger.info('WhatsApp client is ready. Bot can now post to Status.');
+    const callbacks = readyCallbacks;
+    readyCallbacks = [];
+    callbacks.forEach((cb) => cb());
   });
 
   client.on('auth_failure', (msg) => {
@@ -91,4 +99,4 @@ function getStatus() {
   return { isReady, hasQr: !!lastQr, qrDataUrl: lastQrDataUrl };
 }
 
-module.exports = { init, postToStatus, getStatus };
+module.exports = { init, postToStatus, getStatus, onReady };
