@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Status Queue — Admin</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app" id="app" hidden>
+
+  <header class="topbar">
+    <div class="brand">◐ Status Queue</div>
+    <div class="topbar-right">
+      <span id="waStatus" class="pill pill-muted">WhatsApp: checking…</span>
+      <button id="logoutBtn" class="btn-ghost">Sign out</button>
+    </div>
+  </header>
+
+  <div id="qrBanner" class="qr-banner" hidden>
+    <p class="muted">Scan this with WhatsApp → Settings → Linked Devices → Link a Device</p>
+    <img id="qrImage" alt="WhatsApp QR code">
+  </div>
+
+  <main class="layout">
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Today's queue</h2>
+        <button id="rebuildBtn" class="btn-secondary">Rebuild plan</button>
+      </div>
+      <div id="scheduleList" class="schedule-list">Loading…</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Add a product</h2>
+      </div>
+      <form id="productForm" class="stack-form" enctype="multipart/form-data">
+        <label>Image
+          <input type="file" name="image" accept="image/*" required>
+        </label>
+        <label>Caption <span class="muted">(optional — leave blank to use only the generic pool)</span>
+          <input type="text" name="caption" placeholder="e.g. Wireless earbuds, ₦15,000">
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="is_daily_opener">
+          Use as the fixed daily opener (7–8am slot)
+        </label>
+        <button type="submit">Add product</button>
+      </form>
+    </section>
+
+    <section class="panel wide">
+      <div class="panel-head">
+        <h2>Products</h2>
+        <span class="muted" id="productCount"></span>
+      </div>
+      <div id="productGrid" class="product-grid">Loading…</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Generic caption pool</h2></div>
+      <form id="captionForm" class="inline-form">
+        <input type="text" name="text" placeholder="Add a caption line…" required>
+        <button type="submit">Add</button>
+      </form>
+      <ul id="captionList" class="caption-list">Loading…</ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Scheduling rules</h2></div>
+      <form id="settingsForm" class="stack-form">
+        <div class="two-col">
+          <label>Opener window start
+            <input type="time" name="opener_window_start">
+          </label>
+          <label>Opener window end
+            <input type="time" name="opener_window_end">
+          </label>
+        </div>
+        <div class="two-col">
+          <label>Min interval (minutes)
+            <input type="number" name="min_interval_minutes" min="1">
+          </label>
+          <label>Max interval (minutes)
+            <input type="number" name="max_interval_minutes" min="1">
+          </label>
+        </div>
+        <div class="two-col">
+          <label>Min daily quota
+            <input type="number" name="min_daily_quota" min="0">
+          </label>
+          <label>Max daily quota
+            <input type="number" name="max_daily_quota" min="0">
+          </label>
+        </div>
+        <label>Cooldown before a product can repeat (hours)
+          <input type="number" name="cooldown_hours" min="1">
+        </label>
+        <label>Opener caption
+          <input type="text" name="opener_caption">
+        </label>
+        <button type="submit">Save settings</button>
+        <p id="settingsSaved" class="success-text" hidden>Saved.</p>
+      </form>
+
+      <div class="divider"></div>
+
+      <h3 class="sub-head">Override today's quota</h3>
+      <form id="overrideForm" class="inline-form">
+        <input type="number" name="quota" min="0" placeholder="e.g. 20" required>
+        <button type="submit">Set for today</button>
+      </form>
+    </section>
+
+    <section class="panel wide">
+      <div class="panel-head"><h2>Recent posts</h2></div>
+      <div id="logList" class="schedule-list">Loading…</div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

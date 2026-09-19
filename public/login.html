@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Status Queue</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-body">
+  <form id="loginForm" class="login-card">
+    <div class="login-mark">◐</div>
+    <h1>Status Queue</h1>
+    <p class="muted">Sign in to manage today's posts.</p>
+    <label>Username
+      <input type="text" name="username" autocomplete="username" required>
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit">Sign in</button>
+    <p id="loginError" class="error-text" hidden>Wrong username or password.</p>
+  </form>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const body = {
+    username: form.username.value,
+    password: form.password.value
+  };
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    window.location.href = '/index.html';
+  } else {
+    document.getElementById('loginError').hidden = false;
+  }
+});
+</script>
+</body>
+</html>
